@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>火芯Ah - 个人主页</title>
+  <link rel="stylesheet" href="style.css" />
+  
+</head>
+<body>
+
+  <!-- ===== 组件一：头像 + 信息 ===== -->
+  <section class="profile-wrap" aria-label="个人资料">
+    <!-- 头像容器：气泡相对于此定位，尖角贴近头像 -->
+    <div class="avatar-wrap">
+      <!-- Hello World 气泡（左下角的尖贴近头像） -->
+      <div class="bubble" aria-hidden="true">Hello World!</div>
+
+      <!-- QQ 头像 -->
+      <img
+        class="avatar"
+        src="https://q1.qlogo.cn/g?b=qq&nk=915678975&s=640"
+        alt="火芯Ah 的头像"
+      />
+    </div>
+
+    <!-- 名称与描述（默认显示） -->
+    <div class="profile-info">
+      <p class="profile-name">火芯Ah</p>
+      <p class="profile-desc">这是一句个人描述。</p>
+    </div>
+  </section>
+
+
+  <!-- ===== 组件二：导航按钮（预留，已注释） ===== -->
+  <!--
+  <nav class="nav-buttons" aria-label="站点导航">
+
+    接口预留说明：
+      - 复制下方 <a> 块并修改 href 和文字即可添加新页面
+      - href 填写对应三级域名，如 https://blog.yourdomain.com
+      - target="_blank" 可保留（新标签页打开）或改为 "_self"
+
+    <a class="nav-btn" href="https://blog.yourdomain.com" target="_blank">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round" aria-hidden="true">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+      </svg>
+      <span>个人博客</span>
+    </a>
+
+    <a class="nav-btn" href="https://gallery.yourdomain.com" target="_blank">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      <span>作品集</span>
+    </a>
+
+    <a class="nav-btn" href="https://tools.yourdomain.com" target="_blank">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round" aria-hidden="true">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77
+                 a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91
+                 a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+      </svg>
+      <span>在线工具</span>
+    </a>
+
+  </nav>
+  -->
+
+  <!-- 配置播放器 -->
+  <div id="xf-MusicPlayer"
+       data-fadeOutAutoplay
+       data-themeColor="xf-wineRed"
+        data-randomSongList="1"></div>
+  <!-- 引入插件 -->
+  <script src="/xf-MusicPlayer/js/xf-MusicPlayer.min.js"></script>
+
+</body>
+</html>
