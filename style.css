@@ -185,16 +185,6 @@ body {
   transform: translateY(-2px);
 }
 
-.nav-btn,
-.theme-toggle {
-  -webkit-tap-highlight-color: transparent;
-}
-
-.nav-btn:focus-visible,
-.theme-toggle:focus-visible {
-  outline: none;
-}
-
 .nav-btn span,
 .nav-btn svg {
   position: relative;
