@@ -88,22 +88,95 @@
     <!-- 名称与描述（默认显示） -->
     <div class="profile-info">
       <p class="profile-name">火芯Ah</p>
-      <p class="profile-desc">这是一句个人描述。</p>
+      <p class="profile-desc">rm -rf ./个人描述</p>
     </div>
   </section>
 
+  <!-- 一言区域 -->
+  <div class="hitokoto-wrap" id="hitokoto-wrap">
+    <div class="hitokoto-content">
+      <span class="quote-mark">「</span>
+      <span id="hitokoto-text">加载中...</span>
+      <span class="quote-mark">」</span>
+    </div>
+    <div class="hitokoto-actions">
+      <button class="action-btn" id="copy-btn" title="复制">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+      </button>
+      <button class="action-btn" id="refresh-btn" title="换一句">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+      <button class="action-btn" id="search-btn" title="搜索">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </button>
+    </div>
+  </div>
 
-  <!-- ===== 组件二：导航按钮（预留，已注释） ===== -->
-    <!--
-    接口预留：
-      - 复制下方 <a> 块并修改 href 和文字即可添加新页面
-      - href 填写对应三级域名，如 https://blog.yourdomain.com
-      - target="_blank" 可保留（新标签页打开）或改为 "_self"
-    -->
+  <script>
+    // 本地诗词列表（随机选取）
+    const poems = [
+      '落霞与孤鹜齐飞，秋水共长天一色',
+      '山重水复疑无路，柳暗花明又一村',
+      '春风得意马蹄疾，一日看尽长安花',
+      '人生若只如初见，何事秋风悲画扇',
+      '曾经沧海难为水，除却巫山不是云',
+      '愿得一心人，白头不相离',
+      '两情若是久长时，又岂在朝朝暮暮',
+      '入我相思门，知我相思苦',
+      '问世间，情为何物，直教生死相许',
+      '衣带渐宽终不悔，为伊消得人憔悴',
+      '众里寻他千百度，蓦然回首，那人却在，灯火阑珊处',
+      '此情可待成追忆，只是当时已惘然',
+      '人生得意须尽欢，莫使金樽空对月',
+      '天生我材必有用，千金散尽还复来',
+      '长风破浪会有时，直挂云帆济沧海'
+    ];
 
+    function fetchHitokoto() {
+      const random = poems[Math.floor(Math.random() * poems.length)];
+      document.getElementById('hitokoto-text').textContent = random;
+    }
+
+    // 页面加载时获取一言
+    fetchHitokoto();
+
+    // 复制功能
+    document.getElementById('copy-btn').addEventListener('click', () => {
+      const text = document.getElementById('hitokoto-text').textContent;
+      navigator.clipboard.writeText(text);
+      const btn = document.getElementById('copy-btn');
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
+      btn.style.color = 'var(--accent)';
+      setTimeout(() => {
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+        btn.style.color = '';
+      }, 1500);
+    });
+
+    // 刷新功能
+    document.getElementById('refresh-btn').addEventListener('click', fetchHitokoto);
+
+    // 搜索功能（必应）
+    document.getElementById('search-btn').addEventListener('click', () => {
+      const text = document.getElementById('hitokoto-text').textContent;
+      window.open('https://www.bing.com/search?q=' + encodeURIComponent(text), '_blank');
+    });
+  </script>
+
+
+  <!-- ===== 组件二：导航按钮 ===== -->
   <nav class="nav-buttons" aria-label="站点导航">
 
-  <a class="nav-btn" href="http://blog.hxdxw.cn" target="_blank">
+  <a class="nav-btn" href="http://blog.hxdxw.cn" target="_blank" rel="noopener noreferrer">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="2" stroke-linecap="round"
         stroke-linejoin="round" aria-hidden="true">
@@ -113,7 +186,7 @@
     <span>火芯の博客</span>
   </a>
 
-  <a class="nav-btn" href="http://blog.hxdxw.cn/index.php/18.html" target="_blank">
+  <a class="nav-btn" href="http://blog.hxdxw.cn/index.php/18.html" target="_blank" rel="noopener noreferrer">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round" aria-hidden="true">
@@ -123,18 +196,7 @@
       </svg>
     <span>火芯の在线工具</span>
   </a>
-  <!--
-  <a class="nav-btn" href="https://gallery.yourdomain.com" target="_blank">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="2"/>
-      <circle cx="8.5" cy="8.5" r="1.5"/>
-      <polyline points="21 15 16 10 5 21"/>
-    </svg>
-    <span>作品集</span>
-  </a>
-  -->
+
   </nav>
   <!-- 配置播放器 -->
   <div id="xf-MusicPlayer"
