@@ -136,7 +136,7 @@ body {
   line-height: 1.6;
 }
 
-/* ===== 组件二（已注释占位，取消注释即可启用）===== */
+/* ===== 组件二：导航按钮 ===== */
 
 .nav-buttons {
   display: flex;
@@ -195,14 +195,13 @@ body {
 /* ===== 主题切换按钮 ===== */
 .theme-toggle {
   position: fixed;
-  bottom: 20px;
+  bottom: 35px;
   right: 20px;
   width: 35px;
   height: 35px;
   border-radius: 50%;
-  background: var(--card-bg);
-  border: 1.5px solid rgba(0,0,0,.08);
-  box-shadow: var(--shadow-sm);
+  background: transparent;
+  border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -213,7 +212,7 @@ body {
 
 .theme-toggle:hover {
   transform: scale(1.1);
-  box-shadow: var(--shadow-md);
+  background: rgba(128,128,128,.15);
 }
 
 .theme-toggle svg {
@@ -223,10 +222,87 @@ body {
   transition: color var(--transition);
 }
 
-[data-theme="dark"] .theme-toggle {
-  border-color: rgba(255,255,255,.1);
+[data-theme="dark"] .theme-toggle:hover {
+  background: rgba(255,255,255,.1);
 }
 
 [data-theme="dark"] .theme-toggle svg {
   color: var(--text-primary);
+}
+
+/* ===== 一言区域 ===== */
+.hitokoto-wrap {
+  position: fixed;
+  bottom: 35px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hitokoto-content {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.quote-mark {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+#hitokoto-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 600px;
+  line-height: 1.4;
+}
+
+.hitokoto-actions {
+  display: flex;
+  gap: 2px;
+  width: 0;
+  opacity: 0;
+  transform: translateX(-8px);
+  overflow: hidden;
+  transition: width .25s ease, opacity .25s ease, transform .25s ease;
+}
+
+.hitokoto-wrap:hover .hitokoto-actions {
+  width: 80px;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.action-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.action-btn svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+}
+
+.action-btn:hover {
+  background: rgba(0,0,0,.06);
+}
+
+[data-theme="dark"] .action-btn:hover {
+  background: rgba(255,255,255,.1);
+}
+
+.action-btn:hover svg {
+  color: var(--accent);
 }
