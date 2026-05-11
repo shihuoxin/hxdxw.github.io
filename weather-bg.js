@@ -89,7 +89,7 @@
         () => resolve(null),
         {
           enableHighAccuracy: true,
-          timeout: 8000,
+          timeout: 4500,
           maximumAge: 10 * 60 * 1000
         }
       );
@@ -156,9 +156,7 @@
     });
 
     const url = `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Weather request failed: ${res.status}`);
-    const data = await res.json();
+    const data = await fetchJsonWithTimeout(url, 5000);
     if (!data || !data.current) throw new Error('Invalid weather payload');
     return data;
   }
@@ -180,6 +178,7 @@
   async function updateWeatherBackground() {
     try {
       setMetaText('正在通过浏览器定位...');
+      const ipLocationPromise = getCoordsByIp();
 
       let currentLocation = await getCoordsByBrowser();
       if (currentLocation) {
@@ -189,7 +188,7 @@
       }
 
       setMetaText('浏览器定位失败，正在切换IP定位...');
-      currentLocation = await getCoordsByIp();
+      currentLocation = await ipLocationPromise;
       if (currentLocation) {
         const weatherData = await fetchWeather(currentLocation);
         renderFromWeather(`IP:${currentLocation.name}`, weatherData);

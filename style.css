@@ -242,41 +242,6 @@ body {
   z-index: 1;
 }
 
-
-/* ===== 主题切换按钮 ===== */
-.theme-toggle {
-  position: fixed;
-  bottom: 35px;
-  right: 20px;
-  width: 35px;
-  height: 35px;
-  border-radius: 50%;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform var(--transition), background var(--transition);
-  z-index: 1000;
-}
-
-.theme-toggle:hover {
-  transform: scale(1.1);
-  background: rgba(128,128,128,.15);
-}
-
-.theme-toggle svg {
-  width: 24px;
-  height: 24px;
-  color: var(--text-primary);
-  transition: color var(--transition);
-}
-
-[data-theme="dark"] .theme-toggle:hover {
-  background: rgba(255,255,255,.1);
-}
-
 /* ===== 一言区域 ===== */
 .hitokoto-wrap {
   position: fixed;
