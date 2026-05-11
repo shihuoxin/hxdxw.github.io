@@ -60,7 +60,7 @@
     const { scene, isDay, cloudCover } = options;
     html.setAttribute('data-weather', scene);
     html.setAttribute('data-daypart', isDay ? 'day' : 'night');
-    syncMusicPlayerTheme(scene, isDay);
+    syncMusicPlayerTheme(scene， isDay);
 
     if (Number.isFinite(cloudCover)) {
       const opacity = Math.min(Math.max(cloudCover / 100, 0.15), 0.95);
@@ -177,7 +177,7 @@
 
   async function updateWeatherBackground() {
     try {
-      setMetaText('正在通过浏览器定位...');
+      setMetaText('正在获取天气定位...');
       const ipLocationPromise = getCoordsByIp();
 
       let currentLocation = await getCoordsByBrowser();
