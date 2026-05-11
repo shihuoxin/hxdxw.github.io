@@ -12,6 +12,11 @@
     snow: '雪',
     thunder: '雷雨'
   };
+  const BEIJING_LOCATION = {
+    latitude: 39.9042,
+    longitude: 116.4074,
+    name: '北京'
+  };
   const PLAYER_THEME_CLASSES = ['xf-original', 'xf-sky', 'xf-orange', 'xf-darkGreen', 'xf-wineRed', 'xf-girlPink'];
 
   function getPlayerThemeByWeather(scene, isDay) {
@@ -60,7 +65,7 @@
     const { scene, isDay, cloudCover } = options;
     html.setAttribute('data-weather', scene);
     html.setAttribute('data-daypart', isDay ? 'day' : 'night');
-    syncMusicPlayerTheme(scene， isDay);
+    syncMusicPlayerTheme(scene, isDay);
 
     if (Number.isFinite(cloudCover)) {
       const opacity = Math.min(Math.max(cloudCover / 100, 0.15), 0.95);
@@ -73,24 +78,43 @@
     setMetaText(message);
   }
 
-  async function getCoordsByBrowser() {
-    if (!navigator.geolocation) return null;
+  function getWallpaperLabel(scene) {
+    if (scene === 'clear') return '晴天';
+    if (scene === 'cloudy') return '多云';
+    if (scene === 'overcast') return '阴天';
+    if (scene === 'fog') return '雾天';
+    if (scene === 'rain') return '雨天';
+    if (scene === 'snow') return '雪天';
+    if (scene === 'thunder') return '雷雨';
+    return '晴天';
+  }
 
-    return new Promise((resolve) => {
+  function getGeoErrorText(code) {
+    if (code === 1) return '浏览器定位被拒绝';
+    if (code === 2) return '浏览器定位不可用';
+    if (code === 3) return '浏览器定位超时';
+    return '浏览器定位失败';
+  }
+
+  async function getCoordsByBrowser() {
+    if (!navigator.geolocation) {
+      throw new Error('浏览器不支持定位');
+    }
+
+    return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        (position) =>
           resolve({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
-            name: '当前位置',
+            name: '浏览器定位',
             source: 'browser'
-          });
-        },
-        () => resolve(null),
+          }),
+        (error) => reject(error),
         {
           enableHighAccuracy: true,
-          timeout: 4500,
-          maximumAge: 10 * 60 * 1000
+          timeout: 10000,
+          maximumAge: 5 * 60 * 1000
         }
       );
     });
@@ -111,42 +135,6 @@
     }
   }
 
-  function normalizeIpLocation(payload) {
-    if (!payload || typeof payload !== 'object') return null;
-
-    const latitude = Number(payload.latitude);
-    const longitude = Number(payload.longitude);
-    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
-      return {
-        latitude,
-        longitude,
-        name: payload.city || payload.region || payload.country_name || payload.country || 'IP定位',
-        source: 'ip'
-      };
-    }
-
-    return null;
-  }
-
-  async function getCoordsByIp() {
-    const providers = [
-      'https://ipwho.is/',
-      'https://ipapi.co/json/'
-    ];
-
-    for (const url of providers) {
-      try {
-        const data = await fetchJsonWithTimeout(url, 5000);
-        const location = normalizeIpLocation(data);
-        if (location) return location;
-      } catch {
-        // Try next provider
-      }
-    }
-
-    return null;
-  }
-
   async function fetchWeather(location) {
     const params = new URLSearchParams({
       latitude: String(location.latitude),
@@ -161,43 +149,44 @@
     return data;
   }
 
-  function renderFromWeather(locationName, weatherData) {
+  function summarizeWeather(weatherData) {
     const current = weatherData.current;
     const code = Number(current.weather_code);
     const isDay = Number(current.is_day) === 1;
     const cloudCover = Number(current.cloud_cover);
     const temperature = Number(current.temperature_2m);
-
     const type = classifyWeatherCode(code);
-    applyWeatherTheme({ scene: type.scene, isDay, cloudCover });
-
     const tempText = Number.isFinite(temperature) ? `${Math.round(temperature)}°C` : '--';
+
+    return { type, isDay, cloudCover, tempText };
+  }
+
+  function renderFromWeather(locationName, weatherData) {
+    const { type, isDay, cloudCover, tempText } = summarizeWeather(weatherData);
+    applyWeatherTheme({ scene: type.scene, isDay, cloudCover });
     setMetaText(`${locationName} · ${type.label} · ${tempText}`);
   }
 
   async function updateWeatherBackground() {
     try {
-      setMetaText('正在获取天气定位...');
-      const ipLocationPromise = getCoordsByIp();
+      setMetaText('获取天气定位...');
+      const currentLocation = await getCoordsByBrowser();
+      const weatherData = await fetchWeather(currentLocation);
+      renderFromWeather(currentLocation.name, weatherData);
+    } catch (error) {
+      const reasonText = typeof error === 'object' && error !== null && 'code' in error
+        ? getGeoErrorText(error.code)
+        : '天气加载失败';
 
-      let currentLocation = await getCoordsByBrowser();
-      if (currentLocation) {
-        const weatherData = await fetchWeather(currentLocation);
-        renderFromWeather(currentLocation.name, weatherData);
-        return;
+      try {
+        const beijingWeather = await fetchWeather(BEIJING_LOCATION);
+        const { type, isDay, cloudCover, tempText } = summarizeWeather(beijingWeather);
+        applyWeatherTheme({ scene: type.scene, isDay, cloudCover });
+        const wallpaperText = getWallpaperLabel(type.scene);
+        setMetaText(`${reasonText}·已使用北京定位（${wallpaperText}背景） · ${tempText}`);
+      } catch {
+        applySunnyFallback(`${reasonText}·已使用晴天背景`);
       }
-
-      setMetaText('浏览器定位失败，正在切换IP定位...');
-      currentLocation = await ipLocationPromise;
-      if (currentLocation) {
-        const weatherData = await fetchWeather(currentLocation);
-        renderFromWeather(`IP:${currentLocation.name}`, weatherData);
-        return;
-      }
-
-      applySunnyFallback('定位失败 · 已使用晴天背景');
-    } catch {
-      applySunnyFallback('天气加载失败 · 已使用晴天背景');
     }
   }
 
