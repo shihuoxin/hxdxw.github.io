@@ -1,0 +1,113 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>火芯的小窝</title>
+  <link rel="stylesheet" href="style.css" />
+  
+</head>
+<body>
+  <div id="weather-bg" aria-hidden="true">
+    <div class="weather-layer weather-gradient"></div>
+    <div class="weather-layer weather-clouds"></div>
+    <div class="weather-layer weather-particles"></div>
+    <div class="weather-layer weather-light"></div>
+  </div>
+
+  <div id="weather-meta" class="weather-meta" aria-live="polite">正在同步天气...</div>
+
+  <script src="weather-bg.js"></script>
+  
+  <!-- ===== 组件一：头像 + 信息 ===== -->
+  <section class="profile-wrap" aria-label="个人资料">
+    <!-- 头像容器：气泡相对于此定位，尖角贴近头像 -->
+    <div class="avatar-wrap">
+      <!-- Hello World 气泡（左下角的尖贴近头像） -->
+      <div class="bubble" aria-hidden="true">Hello World!</div>
+
+      <!-- QQ 头像 -->
+      <img
+        class="avatar"
+        src="https://q1.qlogo.cn/g?b=qq&nk=915678975&s=640"
+        alt="火芯Ah 的头像"
+      />
+    </div>
+
+    <!-- 名称与描述（默认显示） -->
+    <div class="profile-info">
+      <p class="profile-name">火芯Ah</p>
+      <p class="profile-desc">rm -rf ./个人描述</p>
+    </div>
+  </section>
+
+  <!-- 一言区域 -->
+  <div class="hitokoto-wrap" id="hitokoto-wrap">
+    <div class="hitokoto-content">
+      <span class="quote-mark">「</span>
+      <span id="hitokoto-text">加载中...</span>
+      <span class="quote-mark">」</span>
+    </div>
+    <div class="hitokoto-actions">
+      <button class="action-btn" id="copy-btn" title="复制">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+      </button>
+      <button class="action-btn" id="refresh-btn" title="换一句">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+      <button class="action-btn" id="search-btn" title="搜索">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="hitokoto.js"></script>
+
+
+  <!-- ===== 组件二：导航按钮 ===== -->
+  <nav class="nav-buttons" aria-label="站点导航">
+
+  <a class="nav-btn" href="https://blog.hxdxw.cn" target="_blank" rel="noopener noreferrer">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>
+    <span>火芯の博客</span>
+  </a>
+
+  <a class="nav-btn" href="https://blog.hxdxw.cn/index.php/18.html" target="_blank" rel="noopener noreferrer">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77
+                a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91
+                a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+      </svg>
+    <span>火芯の在线工具</span>
+  </a>
+
+  </nav>
+  <!-- 配置播放器 -->
+  <div id="xf-MusicPlayer"
+       data-cdnName="https://player.xfyun.club/js"
+       data-themeColor="xf-wineRed"
+        data-randomSongList="1"></div>
+  <!-- 引用播放器 -->
+  <script src="xf-MusicPlayer/js/xf-MusicPlayer.min.js"></script>
+
+
+</body>
+</html>
+
+
