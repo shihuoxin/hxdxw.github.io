@@ -73,6 +73,29 @@
     setMetaText(message);
   }
 
+  async function getCoordsByBrowser() {
+    if (!navigator.geolocation) return null;
+
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            name: '当前位置',
+            source: 'browser'
+          });
+        },
+        () => resolve(null),
+        {
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 10 * 60 * 1000
+        }
+      );
+    });
+  }
+
   async function fetchJsonWithTimeout(url, timeoutMs) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -97,7 +120,8 @@
       return {
         latitude,
         longitude,
-        name: payload.city || payload.region || payload.country_name || payload.country || 'IP定位'
+        name: payload.city || payload.region || payload.country_name || payload.country || 'IP定位',
+        source: 'ip'
       };
     }
 
@@ -155,16 +179,24 @@
 
   async function updateWeatherBackground() {
     try {
-      setMetaText('正在同步天气...');
+      setMetaText('正在通过浏览器定位...');
 
-      const currentLocation = await getCoordsByIp();
-      if (!currentLocation) {
-        applySunnyFallback('IP定位失败 · 已使用晴天背景');
+      let currentLocation = await getCoordsByBrowser();
+      if (currentLocation) {
+        const weatherData = await fetchWeather(currentLocation);
+        renderFromWeather(currentLocation.name, weatherData);
         return;
       }
 
-      const weatherData = await fetchWeather(currentLocation);
-      renderFromWeather(`IP:${currentLocation.name}`, weatherData);
+      setMetaText('浏览器定位失败，正在切换IP定位...');
+      currentLocation = await getCoordsByIp();
+      if (currentLocation) {
+        const weatherData = await fetchWeather(currentLocation);
+        renderFromWeather(`IP:${currentLocation.name}`, weatherData);
+        return;
+      }
+
+      applySunnyFallback('定位失败 · 已使用晴天背景');
     } catch {
       applySunnyFallback('天气加载失败 · 已使用晴天背景');
     }
