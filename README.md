@@ -56,7 +56,8 @@
 ```text
 .
 ├── .github/
-│   └── workflows/deploy.yml        # 推送 main 后构建并发布到 gh-pages
+│   └── workflows/deploy.yml        # 推送 main 后构建并发布到 GitHub Pages
+├── CNAME                           # 自定义域名
 ├── public/
 │   └── avatar.jpg                 # 头像
 ├── src/
@@ -102,3 +103,11 @@
 | 部署路径 | `vite.config.js` 的 `base` |
 
 修改音乐来源时，可调整 `apiUrl` 中的 `platform` 和 `playlistId`，或替换为播放器支持的歌单接口。当前项目没有统一的 `.env` 配置入口，上述选项直接在对应文件中维护。
+
+## 部署
+
+推送到 `main` 会触发 `.github/workflows/deploy.yml`。工作流使用 Vite 构建，再通过 GitHub Pages 官方 Actions 上传并发布构建产物。`pages` 并发组会让部署按顺序执行，避免多个运行同时创建 Pages deployment。
+
+仓库的 **Settings → Pages → Build and deployment → Source** 需要选择 **GitHub Actions**。如果此前选择过分支发布，请先取消仍在进行的旧 Pages deployment，再重新运行最新工作流。
+
+当前自定义域名为 `www.hxdxw.cn`，域名解析和 HTTPS 状态需要在 GitHub Pages 设置中确认。
