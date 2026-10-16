@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
-import { normalizeWeatherType } from '../constants/weather.js'
+import { resolveWeatherType } from '../constants/weather.js'
 
 const props = defineProps({
   weather: {
@@ -15,22 +15,7 @@ const props = defineProps({
 
 const emit = defineEmits(['tone-change'])
 
-const automaticWeatherType = computed(() => {
-  const label = String(props.weather?.label || '')
-
-  if (label.includes('雷')) return 'storm'
-  if (label.includes('雪') || label.includes('雹')) return 'snow'
-  if (label.includes('雨') || label.includes('毛毛')) return 'rain'
-  if (label.includes('雾') || label.includes('霾') || label.includes('沙')) return 'fog'
-  if (label.includes('阴')) return 'overcast'
-  if (label.includes('云') || label.includes('大致晴朗')) return 'cloudy'
-  if (label.includes('晴')) return 'clear'
-  return 'neutral'
-})
-
-const sceneType = computed(() => normalizeWeatherType(
-  props.wallpaperMode === 'auto' ? automaticWeatherType.value : props.wallpaperMode,
-))
+const sceneType = computed(() => resolveWeatherType(props.weather, props.wallpaperMode))
 
 const isNight = computed(() => {
   const label = String(props.weather?.label || '')

@@ -61,7 +61,8 @@ IP 定位使用支持浏览器跨域请求的 ZXINC、ipwho.is 和 ipapi.co，�
 │   └── workflows/deploy.yml        # 推送 main 后构建并发布到 GitHub Pages
 ├── CNAME                           # 自定义域名
 ├── public/
-│   └── avatar.jpg                 # 头像
+│   ├── avatar.jpg                 # 头像
+│   └── CNAME                      # 发布产物中的自定义域名
 ├── src/
 │   ├── components/
 │   │   ├── ProfileCard.vue        # 个人资料与 SVG 问候气泡

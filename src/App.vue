@@ -1,14 +1,16 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import WeatherBackground from './components/WeatherBackground.vue'
 import WeatherWidget from './components/WeatherWidget.vue'
 import HitokotoWidget from './components/HitokotoWidget.vue'
 import MusicPlayer from './components/MusicPlayer.vue'
 import ProfileCard from './components/ProfileCard.vue'
+import { resolveWeatherType, WEATHER_MUSIC_THEMES } from './constants/weather.js'
 
 const currentWeather = ref(null)
 const wallpaperMode = ref('auto')
 const backgroundTone = ref('light')
+const musicTheme = computed(() => WEATHER_MUSIC_THEMES[resolveWeatherType(currentWeather.value, wallpaperMode.value)])
 </script>
 
 <template>
@@ -21,7 +23,7 @@ const backgroundTone = ref('light')
     />
     <section class="relative z-10 flex w-full max-w-2xl flex-col items-center gap-10 sm:gap-12">
       <ProfileCard />
-      <MusicPlayer />
+      <MusicPlayer :theme="musicTheme" />
     </section>
     <HitokotoWidget />
   </main>
