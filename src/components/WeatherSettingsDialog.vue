@@ -6,6 +6,7 @@ import { WALLPAPER_OPTIONS } from '../constants/weather.js'
 const props = defineProps({
   cityName: { type: String, default: '' },
   loading: { type: Boolean, default: false },
+  initialLoading: { type: Boolean, default: false },
   searching: { type: Boolean, default: false },
   searchError: { type: String, default: '' },
   places: { type: Array, default: () => [] },
@@ -19,6 +20,7 @@ const cityInput = ref(null)
 const wallpaperSelect = ref(null)
 const wallpaperTrigger = ref(null)
 const wallpaperMenuOpen = ref(false)
+const controlsDisabled = computed(() => props.loading && !props.initialLoading)
 
 const selectedWallpaperLabel = computed(() => (
   WALLPAPER_OPTIONS.find((option) => option.value === props.wallpaperMode)?.label || WALLPAPER_OPTIONS[0].label
@@ -120,7 +122,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
     <header class="weather-settings-header">
       <div class="weather-settings-heading">
         <h2 id="weather-settings-title">天气设置</h2>
-        <p id="weather-settings-description">手动与自动定位切换（自动动态壁纸）</p>
+        <p id="weather-settings-description">通过第三方 IP 服务粗略判断城市，仅用于查询天气</p>
       </div>
       <button type="button" class="weather-settings-close" aria-label="关闭天气设置" title="关闭" @click="emit('close')">
         <X :size="17" :stroke-width="2" />
@@ -136,9 +138,9 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
         type="search"
         autocomplete="off"
         placeholder="输入城市，如焦作"
-        :disabled="loading"
+        :disabled="controlsDisabled"
       />
-      <button type="submit" :disabled="loading || searching">
+      <button type="submit" :disabled="controlsDisabled || searching">
         <LocateFixed :size="16" :stroke-width="1.8" />
         <span>{{ searching ? '查询中' : '定位' }}</span>
       </button>
@@ -148,7 +150,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
 
     <ul v-if="places.length" class="weather-city-results" aria-label="城市搜索结果">
       <li v-for="place in places" :key="place.id">
-        <button type="button" @click="emit('select-place', place)">
+        <button type="button" :disabled="controlsDisabled" @click="emit('select-place', place)">
           <MapPin :size="16" class="weather-city-icon" />
           <span class="weather-city-result-copy">
             <span>{{ place.name }}</span>
@@ -158,8 +160,8 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
       </li>
     </ul>
 
-    <button type="button" class="weather-browser-locate" :disabled="loading" @click="emit('auto-locate')">
-      <span>{{ loading ? '正在定位…' : '浏览器自动定位' }}</span>
+    <button type="button" class="weather-ip-locate" :disabled="controlsDisabled" @click="emit('auto-locate')">
+      <span>{{ controlsDisabled ? '正在定位…' : '通过 IP 定位' }}</span>
     </button>
 
     <div class="weather-wallpaper-setting">
@@ -291,7 +293,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
 
 .weather-city-form input,
 .weather-city-form button,
-.weather-browser-locate,
+.weather-ip-locate,
 .weather-wallpaper-select-wrap {
   min-height: 38px;
   border: 1px solid rgba(255, 255, 255, 0.26);
@@ -345,17 +347,17 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
 }
 
 .weather-city-form button:hover:not(:disabled),
-.weather-browser-locate:hover:not(:disabled) {
+.weather-ip-locate:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.16);
 }
 
 .weather-city-form button:disabled,
-.weather-browser-locate:disabled {
+.weather-ip-locate:disabled {
   cursor: wait;
   opacity: 0.62;
 }
 
-.weather-browser-locate {
+.weather-ip-locate {
   display: flex;
   width: 100%;
   align-items: center;
@@ -401,8 +403,13 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
   text-align: left;
 }
 
-.weather-city-results button:hover {
+.weather-city-results button:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.weather-city-results button:disabled {
+  cursor: wait;
+  opacity: 0.62;
 }
 
 .weather-city-icon {
@@ -582,7 +589,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
 
   .weather-city-form input,
   .weather-city-form button,
-  .weather-browser-locate,
+  .weather-ip-locate,
   .weather-wallpaper-trigger {
     min-height: 40px;
   }

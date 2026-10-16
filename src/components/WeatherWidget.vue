@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Settings } from 'lucide-vue-next'
 import WeatherSettingsDialog from './WeatherSettingsDialog.vue'
-import { DEFAULT_BEIJING_PLACE, getCurrentWeather, locateByBrowser, locateByIp, searchCities } from '../services/weather.js'
+import { DEFAULT_BEIJING_PLACE, getCurrentWeather, locateByIp, searchCities } from '../services/weather.js'
 
 const props = defineProps({
   wallpaperMode: { type: String, default: 'auto' },
@@ -16,7 +16,8 @@ const weather = ref({
   label: '正在获取定位…',
   temperature: null,
 })
-const loading = ref(true)
+const loading = ref(false)
+const initialLoading = ref(true)
 const settingsOpen = ref(false)
 const searching = ref(false)
 const searchError = ref('')
@@ -47,32 +48,41 @@ const displayText = computed(() => {
       : ''
     return `${weather.value.name} · ${weather.value.label}${temperature}`
   }
-  if (loading.value) return weather.value?.label || '正在获取定位…'
+  if (loading.value || initialLoading.value) return weather.value?.label || '正在获取定位…'
   if (weather.value?.label) return weather.value.label
   return '手动定位:打开设置'
 })
 
 async function loadInitialWeather() {
   const requestId = ++weatherRequestId
-  loading.value = true
+  initialLoading.value = true
+  loading.value = false
 
   let place
   try {
     place = await locateByIp()
   } catch {
-    // 只有定位失败才查询北京，先给用户一秒过渡提示，避免页面刚打开时直接跳到默认城市。
+    // IP 定位失败时立即释放手动定位入口，默认城市请求在后台继续。
     if (requestId !== weatherRequestId) return
     weather.value = {
       ...weather.value,
-      label: '定位获取失败＞﹏＜使用北京定位',
+      label: 'IP 定位失败，正在使用北京定位',
     }
-    await new Promise((resolve) => window.setTimeout(resolve, 1000))
+    initialLoading.value = false
+    loading.value = false
     place = DEFAULT_BEIJING_PLACE
   }
 
   if (requestId !== weatherRequestId) return
   try {
-    await applyPlaceWeather(place, requestId)
+    const applied = await applyPlaceWeather(place, requestId)
+    if (!applied && requestId === weatherRequestId) {
+      weather.value = {
+        ...weather.value,
+        name: '',
+        label: '天气暂不可用，请打开设置手动选择城市',
+      }
+    }
   } catch (reason) {
     if (requestId === weatherRequestId) {
       weather.value = {
@@ -82,7 +92,10 @@ async function loadInitialWeather() {
       }
     }
   } finally {
-    if (requestId === weatherRequestId) loading.value = false
+    if (requestId === weatherRequestId) {
+      initialLoading.value = false
+      loading.value = false
+    }
   }
 }
 
@@ -91,7 +104,11 @@ function openSettings() {
   resetSearch()
 }
 
-async function closeSettings() {
+async function closeSettings({ cancel = true } = {}) {
+  if (cancel && loading.value) {
+    weatherRequestId++
+    loading.value = false
+  }
   settingsOpen.value = false
   resetSearch()
   await nextTick()
@@ -100,14 +117,18 @@ async function closeSettings() {
 
 async function changeLocation(resolvePlace, automatic = false) {
   const requestId = ++weatherRequestId
+  initialLoading.value = false
   loading.value = true
   resetSearch()
   try {
     const place = await resolvePlace()
     if (requestId !== weatherRequestId) return
-    if (await applyPlaceWeather(place, requestId)) {
+    const applied = await applyPlaceWeather(place, requestId)
+    if (applied) {
       if (automatic) emit('wallpaper-change', 'auto')
-      await closeSettings()
+      await closeSettings({ cancel: false })
+    } else if (requestId === weatherRequestId) {
+      searchError.value = '未能获取该城市天气，请重试或选择其他城市'
     }
   } catch (reason) {
     if (requestId === weatherRequestId) searchError.value = reason?.message || '定位或天气查询失败，请稍后重试'
@@ -117,7 +138,7 @@ async function changeLocation(resolvePlace, automatic = false) {
 }
 
 function resetToAuto() {
-  return changeLocation(locateByBrowser, true)
+  return changeLocation(locateByIp, true)
 }
 
 function selectPlace(place) {
@@ -159,7 +180,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="fixed left-4 top-4 z-30 sm:left-6 sm:top-6" aria-label="当地天气">
-    <div class="weather-pill" :class="{ 'is-loading': loading }">
+    <div class="weather-pill" :class="{ 'is-loading': loading || initialLoading }">
       <Transition name="weather-text" mode="out-in">
         <span :key="displayText" class="weather-pill-text">{{ displayText }}</span>
       </Transition>
@@ -180,6 +201,7 @@ onBeforeUnmount(() => {
         v-if="settingsOpen"
         :city-name="weather.name"
         :loading="loading"
+        :initial-loading="initialLoading"
         :searching="searching"
         :search-error="searchError"
         :places="places"

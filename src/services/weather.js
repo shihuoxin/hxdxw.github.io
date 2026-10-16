@@ -1,15 +1,17 @@
 import { fetchJsonWithTimeout, fetchTextWithTimeout } from '../utils/http.js'
 
-// 中国 IP 库优先，备用接口只在中国源暂时不可达时使用，避免天气卡片因单点故障失效。
+// 同时尝试多个公开 IP 源，避免单点故障拖慢天气卡片定位。
 const IP_LOCATION_ENDPOINTS = [
   {
-    url: 'https://whois.pconline.com.cn/ipJson.jsp?json=true',
+    url: 'https://ipwho.is/?lang=zh-CN',
     parse(data) {
-      if (data.err) throw new Error(data.err)
+      if (data.success !== true) throw new Error(data.message || 'IP 定位失败')
       return {
-        name: data.city || data.region || data.pro,
-        latitude: Number(data.lat),
-        longitude: Number(data.lng),
+        name: data.city,
+        region: data.region,
+        countryCode: data.country_code,
+        latitude: Number(data.latitude),
+        longitude: Number(data.longitude),
       }
     },
   },
@@ -17,10 +19,15 @@ const IP_LOCATION_ENDPOINTS = [
     url: 'https://ip.zxinc.org/api.php?type=json',
     parse(data) {
       const result = data.data || data
+      // ZXINC 的实际响应为“国家–省份–城市”，location 末尾还包含运营商，不能当城市名。
+      const areas = String(result.country || '').split(/\s*[–—-]\s*/).filter(Boolean)
+      const municipality = areas.length === 2 && ['北京', '上海', '天津', '重庆', '香港', '澳门'].includes(normalizeCityName(areas[1]))
       return {
-        name: result.city || result.region || result.province,
-        latitude: Number(result.latitude || result.lat),
-        longitude: Number(result.longitude || result.lng || result.lon),
+        name: result.city || result.cityName || (areas.length >= 3 ? areas[2] : municipality ? areas[1] : ''),
+        region: result.province || result.region || areas[1],
+        countryCode: areas[0] === '中国' ? 'CN' : undefined,
+        latitude: Number(result.latitude ?? result.lat),
+        longitude: Number(result.longitude ?? result.lng ?? result.lon),
       }
     },
   },
@@ -30,7 +37,9 @@ const IP_LOCATION_ENDPOINTS = [
     parse(data) {
       if (data.error) throw new Error(data.reason || 'IP 定位失败')
       return {
-        name: data.city || data.region,
+        name: data.city,
+        region: data.region || data.region_code,
+        countryCode: data.country_code,
         latitude: Number(data.latitude),
         longitude: Number(data.longitude),
       }
@@ -68,6 +77,7 @@ const COMMON_CITY_RESULTS = COMMON_CITIES.map(([id, name, detail, latitude, long
   cityId: id,
   name,
   detail,
+  countryCode: 'CN',
   latitude,
   longitude,
 }))
@@ -75,7 +85,7 @@ const COMMON_CITY_RESULTS = COMMON_CITIES.map(([id, name, detail, latitude, long
 export const DEFAULT_BEIJING_PLACE = Object.freeze(COMMON_CITY_RESULTS[0])
 
 function normalizeCityName(name = '') {
-  return String(name).replace(/[市区县]$/, '')
+  return String(name).trim().replace(/[市区县]$/, '')
 }
 
 function assertPlace(place) {
@@ -90,82 +100,70 @@ function assertPlace(place) {
 }
 
 export async function locateByIp() {
-  let lastError
+  // 并行尝试各个 IP 源，避免单个不可达节点阻塞后续定位。
+  const attempts = IP_LOCATION_ENDPOINTS.map(async (endpoint) => {
+    const data = await fetchJsonWithTimeout(endpoint.url, 5500)
+    const place = assertPlace(endpoint.parse(data))
 
-  for (const endpoint of IP_LOCATION_ENDPOINTS) {
+    const localCity = pickIpCityResult(COMMON_CITY_RESULTS, place)
+    if (localCity) return { ...place, ...localCity }
+
+    // IP 源已有城市级坐标即可查询天气；无需依赖不支持跨域的城市编码接口。
+    if (Number.isFinite(place.latitude) && Number.isFinite(place.longitude)) return place
+
     try {
-      const data = await fetchJsonWithTimeout(endpoint.url, 5500)
-      const place = assertPlace(endpoint.parse(data))
-      try {
-        const chinaCities = await searchChinaWeatherCities(place.name)
-        if (chinaCities.length) {
-          const city = chinaCities[0]
-          return {
-            ...place,
-            ...city,
-            latitude: Number.isFinite(city.latitude) ? city.latitude : place.latitude,
-            longitude: Number.isFinite(city.longitude) ? city.longitude : place.longitude,
-          }
+      const cities = await searchOpenMeteoCities(place.name)
+      const city = pickIpCityResult(cities, place)
+      if (city) {
+        return {
+          ...place,
+          ...city,
+          latitude: Number.isFinite(city.latitude) ? city.latitude : place.latitude,
+          longitude: Number.isFinite(city.longitude) ? city.longitude : place.longitude,
         }
-      } catch {
-        // 海外 IP 或城市检索暂不可用时，保留经纬度交给备用天气服务。
       }
-      if (!Number.isFinite(place.latitude) || !Number.isFinite(place.longitude)) {
-        throw new Error('定位服务没有返回可用经纬度')
-      }
-      return place
-    } catch (error) {
-      lastError = error
+    } catch {
+      // 城市已由 IP 服务确定，补充天气坐标失败不应误报为 IP 定位失败。
     }
-  }
 
-  throw new Error(lastError?.message || 'IP 定位暂不可用')
+    return place
+  })
+
+  try {
+    return await Promise.any(attempts)
+  } catch (error) {
+    const errors = Array.isArray(error?.errors) ? error.errors : []
+    const lastError = errors.at(-1)
+    throw new Error(lastError?.message || 'IP 定位暂不可用')
+  }
 }
 
-export async function locateByBrowser() {
-  if (typeof navigator === 'undefined' || !navigator.geolocation) {
-    throw new Error('当前浏览器不支持定位')
+function normalizeRegionName(value = '') {
+  return String(value)
+    .replace(/\s/g, '')
+    .replace(/省|市|自治区|特别行政区/g, '')
+}
+
+function pickIpCityResult(results, place) {
+  if (!results.length) return null
+
+  const targetName = normalizeCityName(place.name)
+  const matchingCities = results.filter((city) => (
+    normalizeCityName(city.name) === targetName
+    && (!place.countryCode || !city.countryCode || city.countryCode === place.countryCode)
+  ))
+  if (!matchingCities.length) return null
+
+  const region = normalizeRegionName(place.region)
+  if (region) {
+    const regionalMatch = matchingCities.find((city) => {
+      const detail = normalizeRegionName(city.detail)
+      return detail && (detail.includes(region) || region.includes(detail))
+    })
+    return regionalMatch || null
   }
 
-  const coordinates = await new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude }),
-      (error) => {
-        const messages = {
-          1: '浏览器未授权定位，请检查站点权限',
-          2: '暂时无法获取设备位置',
-          3: '浏览器定位超时，请重试',
-        }
-        reject(new Error(messages[error.code] || '浏览器定位失败'))
-      },
-      { enableHighAccuracy: false, maximumAge: 60000, timeout: 12000 },
-    )
-  })
-
-  if (!Number.isFinite(coordinates.latitude) || !Number.isFinite(coordinates.longitude)) {
-    throw new Error('浏览器没有返回有效坐标')
-  }
-
-  const params = new URLSearchParams({
-    latitude: String(coordinates.latitude),
-    longitude: String(coordinates.longitude),
-    language: 'zh',
-    format: 'json',
-  })
-
-  let city
-  try {
-    const data = await fetchJsonWithTimeout(`https://geocoding-api.open-meteo.com/v1/reverse?${params}`, 6500)
-    city = data.results?.[0]
-  } catch {
-    // 城市名称反查失败时仍使用浏览器返回的有效坐标。
-  }
-  return {
-    id: `browser-${coordinates.latitude}-${coordinates.longitude}`,
-    name: normalizeCityName(city?.name || city?.city || '当前位置'),
-    detail: [city?.admin1, city?.country].filter(Boolean).join(' · ') || '浏览器定位',
-    ...coordinates,
-  }
+  return matchingCities.length === 1 ? matchingCities[0] : null
 }
 
 function parseJsonOrJsonp(text) {
@@ -222,6 +220,7 @@ async function searchOpenMeteoCities(name) {
     id: `${place.id}-${place.latitude}-${place.longitude}`,
     name: place.name,
     detail: [place.admin1, place.country].filter(Boolean).join(' · '),
+    countryCode: place.country_code,
     latitude: place.latitude,
     longitude: place.longitude,
   }))
