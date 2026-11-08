@@ -14,7 +14,7 @@ const musicTheme = computed(() => WEATHER_MUSIC_THEMES[resolveWeatherType(curren
 </script>
 
 <template>
-  <main :data-background-tone="backgroundTone" class="relative isolate flex min-h-svh items-center justify-center overflow-hidden bg-[#f8faf9] px-5 py-28 text-[var(--ink)] sm:px-8">
+  <main :data-background-tone="backgroundTone" class="relative isolate flex min-h-svh items-start justify-center overflow-hidden bg-[#f8faf9] px-5 pb-28 pt-[calc(clamp(136px,23svh,264px)_+_100px)] text-[var(--ink)] sm:px-8">
     <WeatherBackground :weather="currentWeather" :wallpaper-mode="wallpaperMode" @tone-change="backgroundTone = $event" />
     <WeatherWidget
       :wallpaper-mode="wallpaperMode"

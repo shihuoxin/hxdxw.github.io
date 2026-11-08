@@ -43,7 +43,10 @@ function searchQuote() {
 }
 
 onMounted(refreshQuote)
-onBeforeUnmount(() => window.clearTimeout(copyTimer))
+onBeforeUnmount(() => {
+  activeRequest++
+  window.clearTimeout(copyTimer)
+})
 </script>
 
 <template>

@@ -45,10 +45,6 @@
   transition: color 400ms ease, text-shadow 400ms ease;
 }
 
-* {
-  box-sizing: border-box;
-}
-
 html,
 body,
 #app {

@@ -83,7 +83,6 @@ onMounted(() => {
       isAutoPopup: true,
       mode: 'cloud',
       apiUrl: 'https://music.api.xfyun.club/api/v1/music/playlist-songs?platform=netease&playlistId=7004942977',
-      autoplay: true,
       volume: 0.5,
       playMode: 'random',
     },
