@@ -3,17 +3,18 @@
  */
 async function fetchWithTimeout(url, parseResponse, timeoutMs) {
   const controller = new AbortController()
-  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     const response = await fetch(url, { signal: controller.signal })
     if (!response.ok) throw new Error(`请求失败（${response.status}）`)
     return await parseResponse(response)
   } catch (error) {
-    if (error.name === 'AbortError') throw new Error('请求超时，请检查网络后重试')
+    if (error?.name === 'AbortError') throw new Error('请求超时，请检查网络后重试')
     throw error
   } finally {
-    window.clearTimeout(timer)
+    // 读取响应体也受同一超时限制；成功、HTTP 错误和解析失败均释放定时器。
+    clearTimeout(timer)
   }
 }
 

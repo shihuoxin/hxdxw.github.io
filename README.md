@@ -1,12 +1,13 @@
 # 火芯の小窝
 
-基于 Vue 3、Vite 和 Tailwind CSS 的个人主页。页面包含个人资料、SVG 问候气泡、天气胶囊、随天气变化的 SVG 二维动态背景、音乐播放器和一言。
+基于 Vue 3、Vite 和 Tailwind CSS 的个人主页。页面包含个人资料、搜索与工具导航、天气胶囊、随天气变化的 SVG 二维动态背景、音乐播放器和一言。
 
-项目为纯前端应用，可构建为静态文件部署。天气、定位、一言和歌单由浏览器直接请求第三方接口，当前无需配置 API Key 或自建后端。
+项目为纯前端应用，可构建为静态文件部署。天气、定位、一言、搜索联想和歌单由浏览器直接请求第三方接口，当前无需配置 API Key 或自建后端。
 
 ## 功能
 
 - **个人资料**：头像、昵称、简介；悬停头像或通过键盘聚焦时显示一体 SVG 问候气泡。
+- **搜索与工具导航**：支持必应、Google、哔哩哔哩和抖音搜索；搜索引擎选择会保存在浏览器中。输入时显示最多六条联想结果，也可从工具菜单打开常用站点。
 - **天气胶囊**：显示城市、天气与温度，提供半透明毛玻璃样式的设置面板。
 - **定位与城市搜索**：首次通过 IP 定位，也可手动搜索城市或重新通过 IP 定位。
 - **SVG 动态背景**：晴、多云、阴、雾、雨、雪、雷雨七种天气场景，以及未识别天气时的中性场景；支持昼夜配色、场景淡入切换和手动选择。
@@ -25,6 +26,31 @@
 | Lucide Vue Next | 界面图标 |
 | xf-music-player | 音乐播放 |
 
+## 本地开发
+
+建议使用 Node.js 22.12 及以上版本，与部署工作流的 Node.js 22 保持一致。
+
+```sh
+npm ci
+npm run dev
+```
+
+生产构建和现有测试：
+
+```sh
+npm run build
+npm test
+```
+
+`npm run preview` 可在本地预览 `dist/` 中的生产构建。测试使用 Node.js 内置测试运行器，通过模拟第三方响应检查定位、天气和请求异常等边界情况，不依赖外部接口在线。
+
+## 功能说明
+
+### 搜索与工具导航
+
+搜索框支持必应、Google、哔哩哔哩和抖音。搜索请求会在新标签页打开；当前引擎保存在浏览器的 `localStorage` 中。输入联想使用必应公开 JSONP 接口，所有搜索引擎共用该联想来源，每次最多展示六条结果。输入框支持键盘选择和中文输入法组合输入。
+
+“工具”菜单包含 Mikutap、MD editor、整 G 分区工具和宽高比计算器。搜索引擎图标及其来源记录位于 `public/search-engines/`。
 
 ### 天气与定位
 
@@ -51,7 +77,7 @@ IP 定位使用支持浏览器跨域请求的 ZXINC、ipwho.is 和 ipapi.co，�
 
 悬停一言区域或通过键盘聚焦，可显示复制、刷新和搜索按钮。接口请求失败，或刷新间隔小于 2.2 秒时，会选择本地语句。
 
-播放器当前使用网易云歌单 `7004942977`，并请求自动播放。浏览器可能要求先进行点击等交互，才允许播放音频。
+播放器当前使用网易云歌单 `7004942977`，默认随机播放，音量为 50%，主题随天气变化。播放由用户通过播放器控件启动。
 
 ## 目录结构
 
@@ -61,33 +87,42 @@ IP 定位使用支持浏览器跨域请求的 ZXINC、ipwho.is 和 ipapi.co，�
 │   └── workflows/deploy.yml        # 推送 main 后构建并发布到 GitHub Pages
 ├── CNAME                           # 自定义域名
 ├── public/
-│   ├── avatar.jpg                 # 头像
-│   └── CNAME                      # 发布产物中的自定义域名
+│   ├── avatar.jpg                  # 头像
+│   ├── search-engines/              # 搜索引擎图标及来源说明
+│   │   ├── bing.png
+│   │   ├── google.png
+│   │   ├── bilibili.png
+│   │   ├── douyin.png
+│   │   └── SOURCES.md
+│   └── CNAME                        # 发布产物中的自定义域名
 ├── src/
 │   ├── components/
-│   │   ├── ProfileCard.vue        # 个人资料与 SVG 问候气泡
-│   │   ├── WeatherWidget.vue      # 天气显示、定位与请求状态
+│   │   ├── ProfileIdentity.vue       # 个人资料与 SVG 问候气泡
+│   │   ├── SearchNavigation.vue      # 搜索、联想与工具菜单
+│   │   ├── WeatherWidget.vue         # 天气显示、定位与请求状态
 │   │   ├── WeatherSettingsDialog.vue # 城市与壁纸设置
-│   │   ├── WeatherBackground.vue  # 天气映射、SVG 场景与动画控制
-│   │   ├── HitokotoWidget.vue     # 一言及其操作
-│   │   └── MusicPlayer.vue        # 音乐播放器接入与销毁
+│   │   ├── WeatherBackground.vue     # 天气映射、SVG 场景与动画控制
+│   │   ├── HitokotoWidget.vue        # 一言及其操作
+│   │   └── MusicPlayer.vue           # 音乐播放器接入与销毁
 │   ├── constants/
-│   │   └── weather.js             # 壁纸选项与天气类型校验
+│   │   └── weather.js                # 壁纸选项与天气类型校验
 │   ├── services/
-│   │   ├── weather.js             # 定位、城市搜索与多源天气请求
-│   │   └── hitokoto.js            # 一言请求、限频与本地兜底
+│   │   ├── weather.js                # 定位、城市搜索与多源天气请求
+│   │   ├── hitokoto.js               # 一言请求、限频与本地兜底
+│   │   └── searchSuggestions.js       # 搜索联想请求
 │   ├── utils/
-│   │   └── http.js                # 请求超时与响应解析
-│   ├── App.vue                    # 页面布局与组件间状态传递
-│   ├── main.js                    # 应用入口
-│   └── style.css                  # 全局样式与背景明暗主题
-├── index.html                     # 网页标题、描述与挂载节点
-├── vite.config.js                # 构建配置与部署路径
+│   │   └── http.js                   # 请求超时与响应解析
+│   ├── App.vue                       # 页面布局与组件间状态传递
+│   ├── main.js                       # 应用入口
+│   └── style.css                     # 全局样式与背景明暗主题
+├── index.html                        # 网页标题、描述与挂载节点
+├── vite.config.js                    # 构建配置与部署路径
+├── tests/                            # 服务层回归测试
 ├── package.json
 └── package-lock.json
 ```
 
-`WeatherWidget.vue` 将天气和壁纸模式传给 `App.vue`，再由 `WeatherBackground.vue` 绘制场景。背景组件返回明暗主题，页面据此调整个人资料和一言的文字颜色。
+`App.vue` 负责组合个人资料、搜索导航、天气、背景、音乐和一言组件。`WeatherWidget.vue` 将天气和壁纸模式传给 `WeatherBackground.vue` 绘制场景；背景组件返回明暗主题，页面据此调整个人资料、搜索导航和一言的文字颜色。
 
 ## 个性化配置
 
@@ -95,8 +130,10 @@ IP 定位使用支持浏览器跨域请求的 ZXINC、ipwho.is 和 ipapi.co，�
 | --- | --- |
 | 网页标题、描述、浏览器主题色 | `index.html` |
 | 头像 | 替换 `public/avatar.jpg` |
-| 昵称、简介、气泡文字与形状 | `src/components/ProfileCard.vue` |
-| 个人导航 | `ProfileCard.vue` 中的导航占位代码，目前处于注释状态 |
+| 昵称、简介、气泡文字与形状 | `src/components/ProfileIdentity.vue` |
+| 搜索引擎、工具链接与搜索交互 | `src/components/SearchNavigation.vue` |
+| 搜索引擎图标 | `public/search-engines/` |
+| 搜索联想来源与结果数量限制 | `src/services/searchSuggestions.js` |
 | 歌单、默认音量、播放模式 | `src/components/MusicPlayer.vue` 的 `attributes` |
 | 天气配色、SVG 图形、动画参数 | `src/components/WeatherBackground.vue` |
 | 壁纸选项名称 | `src/constants/weather.js` |
@@ -109,7 +146,7 @@ IP 定位使用支持浏览器跨域请求的 ZXINC、ipwho.is 和 ipapi.co，�
 
 ## 部署
 
-推送到 `main` 会触发 `.github/workflows/deploy.yml`。工作流使用 Vite 构建，再通过 GitHub Pages 官方 Actions 上传并发布构建产物。`pages` 并发组会让部署按顺序执行，避免多个运行同时创建 Pages deployment。
+推送到 `main` 会触发 `.github/workflows/deploy.yml`。工作流先运行测试，再使用 Vite 构建，最后通过 GitHub Pages 官方 Actions 上传并发布构建产物。`pages` 并发组会让部署按顺序执行，避免多个运行同时创建 Pages deployment。
 
 仓库的 **Settings → Pages → Build and deployment → Source** 需要选择 **GitHub Actions**。如果此前选择过分支发布，请先取消仍在进行的旧 Pages deployment，再重新运行最新工作流。
 

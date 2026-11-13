@@ -36,7 +36,7 @@ const paint = (name) => `url(#${id(name)})`
 const openSky = computed(() => ['clear', 'cloudy'].includes(sceneType.value))
 const wet = computed(() => ['rain', 'storm'].includes(sceneType.value))
 
-// Sky, horizon light, three terrain planes, and cloud tones for each scene.
+// 每种场景分别配置天空、地平线光晕、三层地形及云层颜色。
 const palettes = {
   clear: { sky: ['#7fbcd5', '#d9e9e6', '#f6dfc3'], light: '#fff1cc', land: ['#b5c9c3', '#8faea6', '#75968c'], cloud: ['#fffdf4', '#e8f0ed'] },
   cloudy: { sky: ['#91b4c8', '#d4e1e2', '#eddfcf'], light: '#f9e4c7', land: ['#b3c5c4', '#93afae', '#789b99'], cloud: ['#fffdf5', '#dbe6e6'] },
@@ -68,7 +68,7 @@ const palette = computed(() => {
   } : base
 })
 
-// Independent seeded coordinates avoid rows and repeated diagonal star patterns.
+// 使用固定种子的独立坐标，避免星点排成行，也避免响应式重绘时随机闪动。
 const random = (seed) => {
   const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453
   return value - Math.floor(value)
@@ -117,6 +117,7 @@ watch(sceneKey, syncPlayback, { flush: 'post' })
 
 onMounted(() => {
   resizeObserver = new ResizeObserver(([entry]) => {
+    // SVG 高度固定为 900，按容器比例调整横向坐标系，避免粒子密度随屏幕失衡。
     if (entry.contentRect.height) width.value = Math.round(900 * entry.contentRect.width / entry.contentRect.height)
   })
   resizeObserver.observe(background.value)

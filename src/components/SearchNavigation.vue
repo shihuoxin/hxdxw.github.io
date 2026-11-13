@@ -57,6 +57,7 @@ let suggestionsEnabled = false
 
 function cancelSuggestionRequest() {
   window.clearTimeout(suggestionTimer)
+  // 同时递增序号，避免已取消但刚好返回的旧请求覆盖当前输入。
   suggestionRequestId++
   suggestionController?.abort()
   suggestionController = null
@@ -76,6 +77,7 @@ async function showMenu(menu, last = false) {
   closeMenu()
   openMenu.value = menu
   await nextTick()
+  if (openMenu.value !== menu || !navRoot.value) return
   const items = navRoot.value.querySelectorAll(`[data-menu="${menu}"] [role^="menuitem"]`)
   const selected = Array.from(items).find((item) => item.getAttribute('aria-checked') === 'true')
   const target = last ? items[items.length - 1] : selected || items[0]
@@ -106,7 +108,7 @@ function selectEngine(engineId) {
   try {
     window.localStorage.setItem('preferred-search-engine', engineId)
   } catch {
-    // The search still works when browser storage is unavailable.
+    // 浏览器禁用存储时仍允许切换引擎，只是不保存选择。
   }
   searchInput.value?.focus()
 }
@@ -148,7 +150,7 @@ function handleFocusOut(event) {
 }
 
 function scheduleSiteClose() {
-  // Let the anchor finish its native new-tab navigation before removing it.
+  // 等链接完成原生新标签页导航后再移除菜单，避免打断点击行为。
   window.clearTimeout(siteCloseTimer)
   siteCloseTimer = window.setTimeout(() => closeMenu(), 0)
 }
@@ -169,9 +171,12 @@ function updateSuggestionPosition() {
 async function revealSuggestions() {
   openMenu.value = 'suggestions'
   await nextTick()
+  if (!suggestionsVisible.value || !navRoot.value) return
   updateSuggestionPosition()
   await nextTick()
-  // A native popover keeps the list above other floating widgets without moving focus.
+  // 等待渲染期间可能已关闭菜单或卸载组件，不能再打开失效的弹层。
+  if (!suggestionsVisible.value) return
+  // 原生弹层进入顶层，避免被其他悬浮组件遮挡，同时保留输入框焦点。
   const panel = suggestionPanel.value
   if (nativePopover && panel && !panel.matches(':popover-open')) panel.showPopover()
 }
@@ -198,7 +203,7 @@ function scheduleSuggestions() {
         await revealSuggestions()
       }
     } catch {
-      // Suggestions are optional; the typed query remains searchable on failure.
+      // 联想服务失败时保留输入，普通搜索仍可正常提交。
     } finally {
       if (requestId === suggestionRequestId) {
         suggestionsLoading.value = false
@@ -253,7 +258,7 @@ onMounted(() => {
     const savedEngine = window.localStorage.getItem('preferred-search-engine')
     if (searchEngines.some((engine) => engine.id === savedEngine)) selectedEngineId.value = savedEngine
   } catch {
-    // Use the default engine when browser storage is unavailable.
+    // 浏览器禁用存储时使用默认引擎。
   }
 
   document.addEventListener('pointerdown', handleDocumentPointerDown)
@@ -277,27 +282,6 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col items-center gap-6 text-center sm:flex-row sm:gap-7 sm:text-left">
-    <button
-      type="button"
-      class="group relative grid size-24 shrink-0 place-items-center rounded-full border border-[#dfe6e2] bg-[#eef2ef] outline-none transition duration-300 hover:border-[#d6b3a7] hover:bg-[#f1e9e6] focus-visible:ring-2 focus-visible:ring-[#cf725e]/35 focus-visible:ring-offset-4 focus-visible:ring-offset-[#f8faf9]"
-      aria-label="头像位置，悬停查看问候"
-    >
-      <img src="/avatar.jpg" alt="火芯Ah 的头像" class="size-full rounded-full object-cover" />
-      <span class="wechat-bubble pointer-events-none absolute bottom-[calc(100%+1px)] left-[calc(50%+90px)] w-max -translate-x-1/2 translate-y-1 opacity-0 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
-        <svg class="wechat-bubble-shape" viewBox="0 0 128 44" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-          <path d="M16 0H112C120.84 0 128 7.16 128 16V20C128 28.84 120.84 36 112 36H24C16 36 10 39 5 43C4.3 43.6 3.5 42.9 3.9 42.1C6.2 37.7 6.8 34.8 6 31.8C2.3 28.9 0 24.3 0 19.5V16C0 7.16 7.16 0 16 0Z" />
-        </svg>
-        <span class="relative">Hello World！</span>
-      </span>
-    </button>
-
-    <div class="min-w-0">
-      <h1 class="profile-title text-[28px] font-semibold leading-tight tracking-[0]">火芯Ah</h1>
-      <p class="profile-copy mt-2 text-[15px] leading-6">你发现这里了？ヾ(^▽^*)))</p>
-    </div>
-  </div>
-
   <nav ref="navRoot" class="nav-buttons" aria-label="搜索与工具导航" @focusout="handleFocusOut">
     <form class="search-bar" role="search" @submit.prevent="submitSearch">
       <div class="menu-wrap">
@@ -416,23 +400,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.wechat-bubble {
-  padding: 8px 14px;
-  color: #40533d;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.4;
-  white-space: nowrap;
-}
-
-.wechat-bubble-shape {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: calc(100% + 8px);
-  fill: #eef1f0;
-}
-
 .nav-buttons {
   --transition: 180ms ease;
   --search-text: var(--profile-title, #24312c);
@@ -453,8 +420,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   width: min(100%, 560px);
-  min-height: 56px;
-  padding: 6px 8px;
+  min-height: 48px;
+  padding: 4px 8px;
   color: var(--search-text);
   background: var(--search-background);
   border: 1px solid var(--search-border);
@@ -501,7 +468,7 @@ onBeforeUnmount(() => {
 
 .search-control {
   gap: 6px;
-  min-height: 40px;
+  min-height: 34px;
   padding: 0 10px;
   border-radius: 999px;
   font-size: 13px;
@@ -576,8 +543,8 @@ onBeforeUnmount(() => {
 
 .search-clear,
 .search-submit {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   flex: 0 0 auto;
   color: var(--search-muted);
   opacity: .82;
@@ -731,11 +698,12 @@ onBeforeUnmount(() => {
 
 @media (max-width: 520px) {
   .search-bar {
-    min-height: 52px;
-    padding: 5px 6px;
+    min-height: 44px;
+    padding: 3px 6px;
   }
 
   .search-control {
+    min-height: 32px;
     padding: 0 7px;
   }
 

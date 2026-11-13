@@ -4,7 +4,8 @@ import WeatherBackground from './components/WeatherBackground.vue'
 import WeatherWidget from './components/WeatherWidget.vue'
 import HitokotoWidget from './components/HitokotoWidget.vue'
 import MusicPlayer from './components/MusicPlayer.vue'
-import ProfileCard from './components/ProfileCard.vue'
+import ProfileIdentity from './components/ProfileIdentity.vue'
+import SearchNavigation from './components/SearchNavigation.vue'
 import { resolveWeatherType, WEATHER_MUSIC_THEMES } from './constants/weather.js'
 
 const currentWeather = ref(null)
@@ -22,7 +23,8 @@ const musicTheme = computed(() => WEATHER_MUSIC_THEMES[resolveWeatherType(curren
       @wallpaper-change="wallpaperMode = $event"
     />
     <section class="relative z-10 flex w-full max-w-2xl flex-col items-center gap-10 sm:gap-12">
-      <ProfileCard />
+      <ProfileIdentity />
+      <SearchNavigation />
       <MusicPlayer :theme="musicTheme" />
     </section>
     <HitokotoWidget />

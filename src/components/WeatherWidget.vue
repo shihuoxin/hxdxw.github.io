@@ -23,6 +23,7 @@ const searching = ref(false)
 const searchError = ref('')
 const places = ref([])
 const settingsButton = ref(null)
+// 定位、天气和城市检索可能交错返回；只有最新请求可以更新界面。
 let weatherRequestId = 0
 let searchRequestId = 0
 
@@ -173,6 +174,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  // 公开接口没有统一取消入口，卸载后通过序号让尚未完成的请求失效。
   weatherRequestId++
   searchRequestId++
 })

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { locateByIp } from '../src/services/weather.js'
+import { getCurrentWeather, locateByIp, searchCities } from '../src/services/weather.js'
 
 const ZXINC_URL = 'https://ip.zxinc.org/api.php?type=json'
 const IPWHO_URL = 'https://ipwho.is/?lang=zh-CN'
@@ -8,15 +8,6 @@ const IPAPI_URL = 'https://ipapi.co/json/'
 
 function mockNetwork(t, routes = {}) {
   const calls = []
-  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window')
-  Object.defineProperty(globalThis, 'window', {
-    configurable: true,
-    value: { setTimeout, clearTimeout },
-  })
-  t.after(() => {
-    if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow)
-    else delete globalThis.window
-  })
   t.mock.method(globalThis, 'fetch', async (input) => {
     const url = String(input)
     calls.push(url)
@@ -108,4 +99,68 @@ test('所有 IP 源都不可达时拒绝定位', async (t) => {
 
   await assert.rejects(locateByIp(), { name: 'Error' })
   assert.deepEqual(new Set(calls), new Set([ZXINC_URL, IPWHO_URL, IPAPI_URL]))
+})
+
+test('IP 源缺少经纬度时继续补充城市坐标，不能将 null 当作 0', async (t) => {
+  const geocodingUrl = 'https://geocoding-api.open-meteo.com/v1/search?name=Paris&count=5&language=zh&format=json'
+  const calls = mockNetwork(t, {
+    [IPWHO_URL]: {
+      success: true,
+      city: 'Paris',
+      latitude: null,
+      longitude: null,
+    },
+    [geocodingUrl]: {
+      results: [{ id: 2988507, name: 'Paris', latitude: 48.8566, longitude: 2.3522 }],
+    },
+  })
+
+  const place = await locateByIp()
+
+  assert.equal(place.latitude, 48.8566)
+  assert.equal(place.longitude, 2.3522)
+  assert.ok(calls.includes(geocodingUrl))
+})
+
+test('无效坐标不会触发备用源查询，合法的零坐标仍可使用', async (t) => {
+  const fallbackUrl = 'https://api.open-meteo.com/v1/forecast?latitude=0&longitude=0&current=temperature_2m%2Cis_day%2Cweather_code&timezone=auto'
+  const calls = mockNetwork(t, {
+    [fallbackUrl]: { current: { temperature_2m: 25, is_day: 1, weather_code: 0 } },
+  })
+
+  for (const [latitude, longitude] of [[null, null], ['', ' '], [91, 0], [0, 181]]) {
+    await assert.rejects(getCurrentWeather({ name: '测试城市', latitude, longitude }), /中国天气服务暂不可用/)
+  }
+  assert.equal(calls.length, 0)
+
+  const weather = await getCurrentWeather({ name: '测试城市', latitude: 0, longitude: 0 })
+  assert.equal(weather.temperature, 25)
+  assert.deepEqual(calls, [fallbackUrl])
+})
+
+test('中国天气网返回数值 0°C 时保留实时温度，不误用预报温度', async (t) => {
+  mockNetwork(t, {
+    'https://www.weather.com.cn/data/cityinfo/101010100.html': {
+      weatherinfo: { city: '北京', weather: '晴', temp: '8℃' },
+    },
+    'https://www.weather.com.cn/data/sk/101010100.html': {
+      weatherinfo: { city: '北京', temp: 0 },
+    },
+  })
+
+  const weather = await getCurrentWeather({ name: '北京', cityId: '101010100' })
+
+  assert.equal(weather.temperature, 0)
+  assert.equal(weather.label, '晴朗')
+})
+
+test('本地常用城市搜索不依赖网络，空查询不请求接口', async (t) => {
+  const calls = mockNetwork(t)
+
+  assert.deepEqual(await searchCities('  '), [])
+  const results = await searchCities(' 北京市 ')
+
+  assert.equal(results[0].name, '北京')
+  assert.equal(results[0].cityId, '101010100')
+  assert.equal(calls.length, 0)
 })

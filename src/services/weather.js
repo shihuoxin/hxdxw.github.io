@@ -10,8 +10,8 @@ const IP_LOCATION_ENDPOINTS = [
         name: data.city,
         region: data.region,
         countryCode: data.country_code,
-        latitude: Number(data.latitude),
-        longitude: Number(data.longitude),
+        latitude: data.latitude,
+        longitude: data.longitude,
       }
     },
   },
@@ -26,8 +26,8 @@ const IP_LOCATION_ENDPOINTS = [
         name: result.city || result.cityName || (areas.length >= 3 ? areas[2] : municipality ? areas[1] : ''),
         region: result.province || result.region || areas[1],
         countryCode: areas[0] === '中国' ? 'CN' : undefined,
-        latitude: Number(result.latitude ?? result.lat),
-        longitude: Number(result.longitude ?? result.lng ?? result.lon),
+        latitude: result.latitude ?? result.lat,
+        longitude: result.longitude ?? result.lng ?? result.lon,
       }
     },
   },
@@ -40,8 +40,8 @@ const IP_LOCATION_ENDPOINTS = [
         name: data.city,
         region: data.region || data.region_code,
         countryCode: data.country_code,
-        latitude: Number(data.latitude),
-        longitude: Number(data.longitude),
+        latitude: data.latitude,
+        longitude: data.longitude,
       }
     },
   },
@@ -88,14 +88,21 @@ function normalizeCityName(name = '') {
   return String(name).trim().replace(/[市区县]$/, '')
 }
 
+function normalizeCoordinate(value, limit) {
+  // 缺失或空白坐标不能用 Number 直接转换，否则会被误认为赤道/本初子午线上的 0。
+  if (value == null || typeof value === 'boolean' || String(value).trim() === '') return NaN
+  const coordinate = Number(value)
+  return Number.isFinite(coordinate) && Math.abs(coordinate) <= limit ? coordinate : NaN
+}
+
 function assertPlace(place) {
   const name = normalizeCityName(place?.name || '')
   if (!name) throw new Error('定位服务没有返回有效城市')
   return {
     ...place,
     name,
-    latitude: Number(place.latitude),
-    longitude: Number(place.longitude),
+    latitude: normalizeCoordinate(place.latitude, 90),
+    longitude: normalizeCoordinate(place.longitude, 180),
   }
 }
 
@@ -200,8 +207,8 @@ function normalizeCityResult(item) {
     cityId,
     name,
     detail: [item.province, item.admin1, item.country].filter(Boolean).join(' · '),
-    latitude: Number(item.latitude),
-    longitude: Number(item.longitude),
+    latitude: normalizeCoordinate(item.latitude, 90),
+    longitude: normalizeCoordinate(item.longitude, 180),
   }
 }
 
@@ -221,13 +228,13 @@ async function searchOpenMeteoCities(name) {
     name: place.name,
     detail: [place.admin1, place.country].filter(Boolean).join(' · '),
     countryCode: place.country_code,
-    latitude: place.latitude,
-    longitude: place.longitude,
+    latitude: normalizeCoordinate(place.latitude, 90),
+    longitude: normalizeCoordinate(place.longitude, 180),
   }))
 }
 
 export async function searchCities(name) {
-  const query = normalizeCityName(String(name ?? '').trim())
+  const query = normalizeCityName(name ?? '')
   if (!query) return []
 
   // 先命中本地常用城市，再访问中国天气网，最后才使用坐标检索备用源。
@@ -287,7 +294,7 @@ async function getWeatherFromChinaWeather(place) {
   ])
   const forecast = cityInfo.weatherinfo || {}
   const current = currentInfo.weatherinfo || {}
-  const temperature = toTemperature(current.temp || forecast.temp)
+  const temperature = toTemperature(current.temp) ?? toTemperature(forecast.temp)
   if (temperature === null) throw new Error('中国天气网没有返回当前温度')
   const description = describeChineseWeather(forecast.weather || current.weather)
   return {

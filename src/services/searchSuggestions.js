@@ -1,8 +1,5 @@
-// All target search engines share Bing's real-time suggestion source. Searches
-// still go to the engine selected in the UI. This official JSONP endpoint works
-// on static hosts without a development proxy or a server-side API key.
-// Bing checks `typeof callback === 'function'` before invoking the callback, so
-// deleting it during cleanup also makes a response arriving after abort harmless.
+// 各引擎共用必应联想源，提交搜索时仍跳转到用户选择的引擎。
+// 使用 JSONP 以兼容纯静态部署，无需代理或服务端密钥。
 const SUGGESTION_ENDPOINT = 'https://api.bing.com/osjson.aspx'
 const REQUEST_TIMEOUT = 3500
 const MAX_QUERY_LENGTH = 256
@@ -34,6 +31,7 @@ export async function getSearchSuggestions(query, { engine = 'bing', signal } = 
       signal?.removeEventListener('abort', abort)
       script.onerror = null
       script.remove()
+      // 接口调用前会检查回调是否为函数，删除后晚到的响应也不会再次生效。
       delete window[callbackName]
       if (error) reject(error)
       else resolve(suggestions)

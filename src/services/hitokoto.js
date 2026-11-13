@@ -20,16 +20,17 @@ function chooseFallback() {
 
 export async function getHitokoto() {
   const now = Date.now()
-  // 限制刷新频率，接口短时间不可用时直接使用本地句子。
+  // 短时间重复刷新不再请求接口，改用不同的本地句子。
   if (now - lastRequestAt < 2200) return chooseFallback()
   lastRequestAt = now
 
   try {
     const data = await fetchJsonWithTimeout('https://v1.hitokoto.cn/?encode=json&c=i', 6500)
-    if (!data.hitokoto) throw new Error('一言服务返回了空内容')
+    const text = typeof data?.hitokoto === 'string' ? data.hitokoto.trim() : ''
+    if (!text) throw new Error('一言服务返回了空内容')
 
-    previousText = data.hitokoto
-    return { text: data.hitokoto }
+    previousText = text
+    return { text }
   } catch {
     return chooseFallback()
   }

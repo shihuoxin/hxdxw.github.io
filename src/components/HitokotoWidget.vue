@@ -9,6 +9,14 @@ const copied = ref(false)
 const copyMessage = ref('')
 let copyTimer
 let activeRequest = 0
+let activeCopy = 0
+
+function resetCopyFeedback() {
+  activeCopy++
+  window.clearTimeout(copyTimer)
+  copied.value = false
+  copyMessage.value = ''
+}
 
 async function refreshQuote() {
   const requestId = ++activeRequest
@@ -16,20 +24,25 @@ async function refreshQuote() {
   // 只应用最后一次请求，避免连续点击刷新时旧响应覆盖新内容。
   const nextQuote = await getHitokoto()
   if (requestId !== activeRequest) return
+  resetCopyFeedback()
   quote.value = nextQuote
   loading.value = false
 }
 
 async function copyQuote() {
+  const requestId = ++activeCopy
   window.clearTimeout(copyTimer)
+  let succeeded = false
   try {
     await navigator.clipboard.writeText(quote.value.text)
-    copied.value = true
-    copyMessage.value = '已复制'
+    succeeded = true
   } catch {
-    copied.value = false
-    copyMessage.value = '复制失败'
+    // 未授权或不支持剪贴板时使用相同的短暂反馈，不中断其他操作。
   }
+  // 剪贴板权限提示可能稍后才结束；换句、再次复制或卸载后忽略旧结果。
+  if (requestId !== activeCopy) return
+  copied.value = succeeded
+  copyMessage.value = succeeded ? '已复制' : '复制失败'
   // 反馈只保留短暂时间，避免长期占据页面空间。
   copyTimer = window.setTimeout(() => {
     copied.value = false
@@ -45,7 +58,7 @@ function searchQuote() {
 onMounted(refreshQuote)
 onBeforeUnmount(() => {
   activeRequest++
-  window.clearTimeout(copyTimer)
+  resetCopyFeedback()
 })
 </script>
 

@@ -71,7 +71,7 @@ onMounted(() => {
   if (!playerRoot.value) return
 
   // 直接把播放器挂到当前宿主节点，避免组件重复渲染时创建多个全局实例。
-  // 云歌单和随机播放由播放器库处理；autoplay 仍受浏览器用户手势策略限制。
+  // 仅配置云歌单与随机播放，保留播放器默认的非自动播放行为。
   player = new MusicPlayer({
     tagName: 'xf-music-player',
     mountElement: playerRoot.value,
@@ -79,7 +79,7 @@ onMounted(() => {
     isMonitoring: false,
     attributes: {
       theme: props.theme,
-      bottom: "4.0em",
+      bottom: '4.0em',
       isAutoPopup: true,
       mode: 'cloud',
       apiUrl: 'https://music.api.xfyun.club/api/v1/music/playlist-songs?platform=netease&playlistId=7004942977',
